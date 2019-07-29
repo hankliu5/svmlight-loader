@@ -370,7 +370,7 @@ static PyObject *dump_svmlight_file(PyObject *self, PyObject *args)
  * Python module setup.
  */
 
-static PyMethodDef svmlight_format_methods[] = {
+static PyMethodDef c_svmlight_format_methods[] = {
   {"_load_svmlight_file", load_svmlight_file,
     METH_VARARGS, load_svmlight_file_doc},
 
@@ -380,21 +380,30 @@ static PyMethodDef svmlight_format_methods[] = {
   {NULL, NULL, 0, NULL}
 };
 
-static const char svmlight_format_doc[] =
+static const char c_svmlight_format_doc[] =
   "Loader/Writer for svmlight / libsvm datasets - C++ helper routines";
 
+static struct PyModuleDef c_svmlight_loader_definition = { 
+    PyModuleDef_HEAD_INIT,
+    "_svmlight_loader",
+    c_svmlight_format_doc,
+    -1, 
+    c_svmlight_format_methods
+};
+
 extern "C" {
-PyMODINIT_FUNC init_svmlight_loader(void)
+PyMODINIT_FUNC PyInit_c_svmlight_loader(void)
 {
-  _import_array();
+  Py_Initialize();
+  import_array();
 
   init_type_objs();
   if (PyType_Ready(&DoubleVOwnerType) < 0
-   || PyType_Ready(&IntVOwnerType)    < 0)
-    return;
+  || PyType_Ready(&IntVOwnerType)    < 0)
+  return NULL;
 
-  Py_InitModule3("_svmlight_loader",
-                 svmlight_format_methods,
-                 svmlight_format_doc);
+  return PyModule_Create(&c_svmlight_loader_definition);
+
 }
 }
+

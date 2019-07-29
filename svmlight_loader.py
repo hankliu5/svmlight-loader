@@ -10,8 +10,8 @@ import os.path
 import numpy as np
 import scipy.sparse as sp
 
-from _svmlight_loader import _load_svmlight_file
-from _svmlight_loader import _dump_svmlight_file
+from c_svmlight_loader import _load_svmlight_file
+from c_svmlight_loader import _dump_svmlight_file
 
 
 def load_svmlight_file(file_path, n_features=None, dtype=None,
