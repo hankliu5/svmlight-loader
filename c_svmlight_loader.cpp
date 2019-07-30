@@ -27,6 +27,7 @@
 
 #include <fstream>
 #include <sstream>
+#include <iostream>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -243,6 +244,65 @@ void parse_line(const std::string& line,
 /*
  * Parse entire file. Throws exception on failure.
  */
+void parse_string(char const *rawdata,
+                std::vector<double> &data,
+                std::vector<int> &indices,
+                std::vector<int> &indptr,
+                std::vector<double> &labels)
+{
+  std::stringstream string_stream(rawdata);
+
+  if (!string_stream)
+    throw std::ios_base::failure("Cannot put raw data string into std::stringstream");
+
+  std::string line;
+  while (std::getline(string_stream, line)) {
+    parse_line(line, data, indices, indptr, labels);
+  }
+
+  indptr.push_back(data.size());
+}
+
+static const char load_svmlight_string_doc[] =
+  "Load file in svmlight format and return a CSR.";
+
+extern "C" {
+static PyObject *load_svmlight_string(PyObject *self, PyObject *args)
+{
+  try {
+    // Read function arguments.
+    char const *rawdata;
+
+    if (!PyArg_ParseTuple(args, "y", &rawdata))
+      return 0;
+
+    std::vector<double> data, labels;
+    std::vector<int> indices, indptr;
+    parse_string(rawdata, data, indices, indptr, labels);
+
+    return to_csr(data, indices, indptr, labels);
+
+  } catch (SyntaxError const &e) {
+    PyErr_SetString(PyExc_ValueError, e.what());
+    return 0;
+  } catch (std::bad_alloc const &e) {
+    PyErr_SetString(PyExc_MemoryError, e.what());
+    return 0;
+  } catch (std::ios_base::failure const &e) {
+    PyErr_SetString(PyExc_IOError, e.what());
+    return 0;
+  } catch (std::exception const &e) {
+    std::string msg("error in SVMlight/libSVM reader: ");
+    msg += e.what();
+    PyErr_SetString(PyExc_RuntimeError, msg.c_str());
+    return 0;
+  }
+}
+}
+
+/*
+ * Parse entire file. Throws exception on failure.
+ */
 void parse_file(char const *file_path,
                 size_t buffer_size,
                 std::vector<double> &data,
@@ -371,6 +431,9 @@ static PyObject *dump_svmlight_file(PyObject *self, PyObject *args)
  */
 
 static PyMethodDef c_svmlight_format_methods[] = {
+  {"_load_svmlight_string", load_svmlight_string,
+    METH_VARARGS, load_svmlight_file_doc},
+
   {"_load_svmlight_file", load_svmlight_file,
     METH_VARARGS, load_svmlight_file_doc},
 
